@@ -13,6 +13,7 @@ import {
   Ticket
 } from 'lucide-react';
 import { useBookingStore } from '../store/useBookingStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { useCountdown } from '../hooks/useCountdown';
 import axios from 'axios';
 
@@ -29,12 +30,23 @@ export function CheckoutModal({ showId, movieTitle }) {
     addActivityLog
   } = useBookingStore();
 
-  const [customerName, setCustomerName] = useState('Rahul Sharma');
-  const [customerEmail, setCustomerEmail] = useState('rahul@example.com');
-  const [customerPhone, setCustomerPhone] = useState('+91 98765 43210');
+  const user = useAuthStore((s) => s.user);
+
+  const [customerName, setCustomerName] = useState(user?.name || 'Rahul Sharma');
+  const [customerEmail, setCustomerEmail] = useState(user?.email || 'rahul@example.com');
+  const [customerPhone, setCustomerPhone] = useState(user?.phone || '+91 98765 43210');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentActionType, setPaymentActionType] = useState(null); // 'SUCCESS' | 'FAILURE'
   const [errorMsg, setErrorMsg] = useState(null);
+
+  // Sync with user if changed
+  React.useEffect(() => {
+    if (user) {
+      if (user.name) setCustomerName(user.name);
+      if (user.email) setCustomerEmail(user.email);
+      if (user.phone) setCustomerPhone(user.phone);
+    }
+  }, [user]);
 
   // Timer hook
   const { formatted, isExpired } = useCountdown(expiresAt, async () => {

@@ -46,6 +46,7 @@ services:
       CLIENT_ORIGIN: "http://localhost:5173"
       MONGO_URI: "mongodb://mongo:27017/cinereserve"
       REDIS_URL: "redis://redis:6379"
+      JWT_SECRET: "cinereserve_jwt_secret_key_2026_super_secure"
       SEAT_LOCK_TTL_SECONDS: 300
       CONVENIENCE_FEE_FLAT: 30
     depends_on:

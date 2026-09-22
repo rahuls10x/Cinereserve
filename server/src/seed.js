@@ -2,17 +2,46 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { connectDB, disconnectDB } from './config/db.js';
+import { User } from './models/User.js';
 import { Movie } from './models/Movie.js';
 import { Theater } from './models/Theater.js';
 import { Show } from './models/Show.js';
 import { Booking } from './models/Booking.js';
+import { getRedisClient } from './config/redis.js';
 
 export async function seedDatabase() {
   console.log('[Seed] Starting database seed...');
+  await User.deleteMany({});
   await Movie.deleteMany({});
   await Theater.deleteMany({});
   await Show.deleteMany({});
   await Booking.deleteMany({});
+
+  // 0. Create Default Admin User
+  // Password will be hashed via User pre-save hook
+  const adminUser = await User.create({
+    name: 'CineReserve Admin',
+    email: 'admin@example.com',
+    password: 'Admin@123',
+    role: 'admin',
+    phone: '+919876543210'
+  });
+  console.log(`[Seed] Seeded default admin account: ${adminUser.email}`);
+
+  // Clear any existing Redis transient keys/locks
+  try {
+    const redis = getRedisClient();
+    if (redis && typeof redis.keys === 'function') {
+      const lockKeys = await redis.keys('lock:seat:*');
+      const holdKeys = await redis.keys('hold:session:*');
+      const allKeys = [...lockKeys, ...holdKeys];
+      if (allKeys.length > 0 && typeof redis.del === 'function') {
+        await redis.del(...allKeys);
+      }
+    }
+  } catch (e) {
+    console.warn('[Seed] Redis cleanup warning:', e.message);
+  }
 
   // 1. Create Movies
   const movies = await Movie.create([
