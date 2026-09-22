@@ -1,0 +1,11 @@
+{
+  "name": "cinereserve-monorepo",
+  "version": "1.0.0",
+  "description": "Cinema Hall High-Concurrency Booking Platform (MERN + Redis Prototype)",
+  "scripts": {
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "seed": "npm run seed --prefix server",
+    "build": "npm run build --prefix client"
+  }
+}

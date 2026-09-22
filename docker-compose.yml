@@ -1,0 +1,72 @@
+name: mediaamp
+
+services:
+  # ─── MongoDB ────────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7
+    container_name: mediaamp-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: mediaamp-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    # Enable keyspace expiry events required by the sweeper
+    command: redis-server --notify-keyspace-events Ex
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ─── Express API Server ──────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: mediaamp-api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      NODE_ENV: development
+      CLIENT_ORIGIN: "http://localhost:5173"
+      MONGO_URI: "mongodb://mongo:27017/cinereserve"
+      REDIS_URL: "redis://redis:6379"
+      SEAT_LOCK_TTL_SECONDS: 300
+      CONVENIENCE_FEE_FLAT: 30
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ─── React / Vite Client ─────────────────────────────────────────────────────
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: mediaamp-client
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_HOST: "http://api:5000"
+    depends_on:
+      - api
+
+volumes:
+  mongo_data:
